@@ -76,35 +76,50 @@ def get_nutritional_values(food_url):
 # Get all links for each type of aliment
 def get_all_links(data):
     food_dict = {}
-    total_categories = len(data) 
+    total_categories = len(data)  # Nombre total de catégories
     for index, entry in enumerate(data, start=1):
         response = requests.get(entry['link'])
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            food_list = soup.find_all('a', class_='paragraph-primary text-black hover:text-primary-main t-decoration-n', href=lambda href: href and f'/alimentation/nutriments/guide-des-calories/{entry["category"]}/' in href)
+            food_list = soup.find_all(
+                'a',
+                class_='paragraph-primary text-black hover:text-primary-main t-decoration-n',
+                href=lambda href: href and f'/alimentation/nutriments/guide-des-calories/{entry["category"]}/' in href
+            )
             food_dict[entry['category']] = []
-            count = 0  
+            count = 0  # Nombre d'aliments traités
             total_foods = len(food_list)
-            progress_step = max(1, total_foods // 10) 
-            progress = 0 
-            print(f"{entry['category']}: {'-' * 10}")  
-            for food in food_list:
+
+            print(f"{index}/{total_categories} START: {entry['category']} ({total_foods} foods)")
+            
+            # Process each food item
+            for i, food in enumerate(food_list, start=1):
                 food_name = food.get_text(strip=True)
                 food_link = 'https://www.santemagazine.fr' + food['href']
                 nutritional_values = get_nutritional_values(food_link)
                 food_dict[entry['category']].append({
-                    'food': food_name,
+                    'aliment': food_name,
                     'link': food_link,
                     'nutritional_values': nutritional_values
                 })
                 count += 1
-                if count % progress_step == 0:
-                    progress += 1
-                    print(f"{entry['category']}: {'#' * progress}{'-' * (10 - progress)}") 
+                
+                # Update progress bar
+                print_progress_bar(i, total_foods, length=40)
+
             print(f"{index}/{total_categories} DONE: {entry['category']} with {count} foods")
         else:
             print(f"{index}/{total_categories} FAILED: {entry['category']} failed!")
     return food_dict
+
+# Function to print a progress bar
+def print_progress_bar(iteration, total, length=50):
+    percent = f"{100 * (iteration / float(total)):.1f}"
+    filled_length = int(length * iteration // total)
+    bar = '█' * filled_length + '-' * (length - filled_length)
+    print(f'\r[{bar}] {percent}%', end='\r')
+    if iteration == total:
+        print()
 
 # Save the data to a JSON file
 def save_to_json(food_dict, filename):
@@ -125,34 +140,35 @@ def save_to_csv(food_dict, filename):
     with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow(headers)
-        for category, foods in food_dict.items():
-            for food in foods:
+
+        for category, aliments in food_dict.items():
+            for aliment in aliments:
                 row = [
                     category,
-                    food.get("food", ""),
-                    food.get("link", ""),
-                    food["nutritional_values"].get("Quantity", 0) if "Quantity" in food["nutritional_values"] else food["nutritional_values"].get("Nutrients", 0),
-                    food["nutritional_values"].get("Water", 0),
-                    food["nutritional_values"].get("Proteins", 0),
-                    food["nutritional_values"].get("Alcohol", 0),
-                    food["nutritional_values"].get("Carbohydrates", 0),
-                    food["nutritional_values"].get("Fats", 0),
-                    food["nutritional_values"].get("Vitamin A(retinol)", 0),
-                    food["nutritional_values"].get("Beta-carotene(provitamin A)", 0),
-                    food["nutritional_values"].get("Vitamin D(cholecalciferol)", 0),
-                    food["nutritional_values"].get("Vitamin E(tocopherol)", 0),
-                    food["nutritional_values"].get("Vitamin K1", 0),
-                    food["nutritional_values"].get("Vitamin K2", 0),
-                    food["nutritional_values"].get("Vitamin C", 0),
-                    food["nutritional_values"].get("Vitamin B1(thiamine)", 0),
-                    food["nutritional_values"].get("Vitamin B2(riboflavin)", 0),
-                    food["nutritional_values"].get("Vitamin B3(niacin)", 0),
-                    food["nutritional_values"].get("Vitamin B5(pantothenic acid)", 0),
-                    food["nutritional_values"].get("Vitamin B6", 0),
-                    food["nutritional_values"].get("Vitamin B9(folic acid)", 0),
-                    food["nutritional_values"].get("Vitamin B12(cobalamin)", 0),
-                    food["nutritional_values"].get("Calcium", 0),
-                    food["nutritional_values"].get("Copper", 0)
+                    aliment.get("aliment", ""),
+                    aliment.get("link", ""),
+                    aliment["nutritional_values"].get("Quantité", 0) if "Quantité" in aliment["nutritional_values"] else aliment["nutritional_values"].get("Nutriments", 0),
+                    aliment["nutritional_values"].get("Eau", 0),
+                    aliment["nutritional_values"].get("Protéines", 0),
+                    aliment["nutritional_values"].get("Alcool", 0),
+                    aliment["nutritional_values"].get("Glucides", 0),
+                    aliment["nutritional_values"].get("Lipides", 0),
+                    aliment["nutritional_values"].get("Vitamine A(rétinol)", 0),
+                    aliment["nutritional_values"].get("Bêta-carotène(provitamine A)", 0),
+                    aliment["nutritional_values"].get("Vitamine D(cholécalciférol)", 0),
+                    aliment["nutritional_values"].get("Vitamine E(tocophérol)", 0),
+                    aliment["nutritional_values"].get("Vitamine K1", 0),
+                    aliment["nutritional_values"].get("Vitamine K2", 0),
+                    aliment["nutritional_values"].get("Vitamine C", 0),
+                    aliment["nutritional_values"].get("Vitamine B1(thiamine)", 0),
+                    aliment["nutritional_values"].get("Vitamine B2(riboflavine)", 0),
+                    aliment["nutritional_values"].get("Vitamine B3(niacine)", 0),
+                    aliment["nutritional_values"].get("Vitamine B5(acide panthonéique)", 0),
+                    aliment["nutritional_values"].get("Vitamine B6", 0),
+                    aliment["nutritional_values"].get("Vitamine B9(acide folique)", 0),
+                    aliment["nutritional_values"].get("Vitamine B12(cobolamine)", 0),
+                    aliment["nutritional_values"].get("Calcium", 0),
+                    aliment["nutritional_values"].get("Cuivre", 0)
                 ]
                 csv_writer.writerow(row)
 
